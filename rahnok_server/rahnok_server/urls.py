@@ -16,9 +16,10 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path
 
-from rest_framework.authtoken.views import obtain_auth_token
+from auth_service.views import auth_token_login_view, auth_token_logout_view
 
 urlpatterns = [
-    path('get-auth-token/', obtain_auth_token),
+    path('auth-token/', auth_token_login_view),
+    path('auth-token/<slug:uuid>/', auth_token_logout_view),
     path('admin/', admin.site.urls, name='api_token_auth'),
 ]
