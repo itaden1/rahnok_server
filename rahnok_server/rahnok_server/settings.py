@@ -39,7 +39,9 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'rest_framework.authtoken',
-    'auth_service'
+    'rest_framework_api_key',
+    'auth_service',
+    'character'
 ]
 
 MIDDLEWARE = [
@@ -131,8 +133,13 @@ AUTH_USER_MODEL = 'auth_service.User'
 
 # rest framework
 # 
-REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework.authentication.TokenAuthentication'
-    ]
-}
+# REST_FRAMEWORK = {
+#     'DEFAULT_AUTHENTICATION_CLASSES': [
+#         'rest_framework.authentication.TokenAuthentication',
+#     ]
+# }
+
+# api key 
+# https://florimondmanca.github.io/djangorestframework-api-key/guide/
+
+# API_KEY_CUSTOM_HEADER = "HTTP_X_API_KEY"
