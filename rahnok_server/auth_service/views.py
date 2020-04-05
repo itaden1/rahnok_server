@@ -8,7 +8,7 @@ from rest_framework import status
 
 from rest_framework_api_key.permissions import HasAPIKey
 
-from auth_service.serializers import VerifyTokenRequestSerializer, DeleteTokenRequestSerializer
+from auth_service.serializers import TokenRequestSerializer
 from auth_service.authentication import GameServerAuthentication
 
 
@@ -34,10 +34,7 @@ class AuthTokenLogin(ObtainAuthToken):
             user=user
         )
 
-        return Response({
-            "user_id": user.id,
-            "token": user_token.key
-        }, status=status.HTTP_200_OK)
+        return Response({"token": user_token.key}, status=status.HTTP_200_OK)
 
 auth_token_login_view = AuthTokenLogin().as_view()
 
@@ -67,7 +64,7 @@ class VerifyAuthToken(APIView):
      it is used to make further queries on behalf of the player, for example updating their character"""
 
     permission_classes = [HasAPIKey]
-    serializer_class = VerifyTokenRequestSerializer
+    serializer_class = TokenRequestSerializer
 
     def post(self, request, *args, **kwargs):
         serializer = self.serializer_class(data=request.data)
@@ -75,10 +72,9 @@ class VerifyAuthToken(APIView):
 
         token = Token.objects.filter(key=serializer.validated_data.get("token")).first()
         if token:
-            user_id = token.user.id
-            response = Response({"user_id": user_id}, status=status.HTTP_200_OK)
+            response = Response({"verified": True}, status=status.HTTP_200_OK)
         else:
-            response = Response({}, status=status.HTTP_410_GONE)
+            response = Response({"verified": False}, status=status.HTTP_410_GONE)
         return response
 
 auth_token_verify_view = VerifyAuthToken().as_view()
@@ -88,14 +84,13 @@ class DeletePlayerAuthToken(APIView):
     """ Used by the game server when logging a player out. Deletes the Auth token """
 
     permission_classes = [HasAPIKey]
-    serializer_class = DeleteTokenRequestSerializer
+    serializer_class = TokenRequestSerializer
 
     def post(self, request, *args, **kwargs):
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        user_id = serializer.validated_data.get("user_id")
-        token = Token.objects.get(user__id=user_id)
+        token = Token.objects.get(key=serializer.validated_data.get("token"))
         token.delete()
 
         return Response({}, status=status.HTTP_200_OK)
