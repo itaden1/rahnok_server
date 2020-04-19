@@ -72,9 +72,15 @@ class VerifyAuthToken(APIView):
 
         token = Token.objects.filter(key=serializer.validated_data.get("token")).first()
         if token:
-            response = Response({"verified": True}, status=status.HTTP_200_OK)
+            response = Response({
+                "verified": True, 
+                "token": token.key}, 
+                status=status.HTTP_200_OK)
         else:
-            response = Response({"verified": False}, status=status.HTTP_410_GONE)
+            response = Response({
+                "verified": False,
+                "token": serializer.validated_data.get("token")},
+                 status=status.HTTP_410_GONE)
         return response
 
 auth_token_verify_view = VerifyAuthToken().as_view()
