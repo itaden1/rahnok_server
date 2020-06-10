@@ -20,7 +20,7 @@ class AuthTokenLogin(ObtainAuthToken):
 
     """Obtain or create a login token using username / password
     Only accesable through the web application
-    username / password should never be passes to the game server"""
+    username / password should never be passed to the game server"""
 
     def post(self, request, *args, **kwargs):
         """ get or create a users authentication token"""

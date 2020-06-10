@@ -17,9 +17,11 @@ from django.contrib import admin
 from django.urls import path, include
 
 from auth_service import urls as auth_urls
-
+from character import urls as character_urls
+print(character_urls)
 
 urlpatterns = [
     path('auth/', include(auth_urls), name='api_token_auth'),
+    path('characters/', include(character_urls), name='character_management'),
     path('admin/', admin.site.urls),
 ]
