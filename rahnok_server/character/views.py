@@ -8,9 +8,8 @@ from rest_framework.permissions import IsAuthenticated
 
 from character.models import Character
 
+from character.mixins import GetValidateUserMixin
 from character.serializers import CharacterSerializer
-from auth_service.serializers import TokenRequestSerializer
-from rest_framework.authtoken.models import Token
 
 
 class CharacterWebView(mixins.ListModelMixin, GenericAPIView):
@@ -24,29 +23,64 @@ class CharacterWebView(mixins.ListModelMixin, GenericAPIView):
 character_web_view = CharacterWebView().as_view()
 
 
-class CharacterGameServerView(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.UpdateModelMixin, mixins.CreateModelMixin, GenericAPIView):
+class CharacterListGameServerView(GetValidateUserMixin, GenericAPIView):
     permission_classes = [HasAPIKey]
     serializer_class = CharacterSerializer
 
-
     def get(self, request, *args, **kwargs):
-        serializer = TokenRequestSerializer(data=request.data)
-        serializer.is_valid(raise_exeption=True)
-        user = Token.objects.filter(key=serializer.validated_data.get("token")).first().user
+        user = self.get_validated_user(request)
         characters = Character.objects.filter(user=user)
 
-        response_serializer = self.get_serializer(characters, many=True)
-        return Response(response_serializer)
+        serializer = self.get_serializer(characters, many=True)
+        return Response(serializer.data)
+    
+    def post(self, request, *args, **kwargs):
+        # get user via token
+        user = self.get_validated_user(request)
 
-    def retrieve(self, request, *args, **kwargs):
-        # check the token
+        # get character data from request
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        # create a new character for the user
+        data = serializer.validated_data
 
-        # get user via the token
+        new_character = Character.objects.create(
+            user=user,
+            first_name=data["first_name"],
+            last_name=data["last_name"],
+            appearance=data["appearance"],
+            transform_x=data["transform_x"],
+            transform_y=data["transform_y"],
+            transform_z=data["transform_z"],
+            transform_o=data["transform_o"],
+            )
+
+        serializer = self.get_serializer(new_character)        
+        
+        # return success code
+        return Response(serializer.data)
+
+character_list_game_server_view = CharacterListGameServerView().as_view()
+
+
+class CharacterDetailGameServerView(GetValidateUserMixin, GenericAPIView):
+    permission_classes = [HasAPIKey]
+    serializer_class = CharacterSerializer
+
+    def get_queryset(self, user):
+        lookup_url_kwarg = self.lookup_url_kwarg or self.lookup_field
+        return super().get_queryset().filter(id=lookup_url_kwarg, user=user)
+
+    def get(self, request, *args, **kwargs):
+        # check the token and get user
+        user = self.get_validated_user(request)
 
         # get character via id in request data + user
+        queryset = self.get_queryset(user)
 
+        serializer = self.get_serializer(queryset)
         # return the character data
-        pass
+        return Response(serializer.data)
 
     def update(self, request, *args, **kwargs):
         pass
@@ -62,16 +96,12 @@ class CharacterGameServerView(mixins.ListModelMixin, mixins.RetrieveModelMixin, 
 
         # return success code
 
-    def create(self, request, *args, **kwargs):
+    def delete(self, request, *args, **kwargs):
         pass
-        # check the token
+        # check token and get user
 
-        # get user via token
+        # get queryset
 
-        # get character data from request
+        # delete character
 
-        # create a new character for the user
-
-        # return success code
-
-character_game_server_view = CharacterGameServerView().as_view()
+character_detail_game_server_view = CharacterDetailGameServerView().as_view()
