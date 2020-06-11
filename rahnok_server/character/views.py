@@ -5,6 +5,7 @@ from rest_framework.views import APIView
 from rest_framework_api_key.permissions import HasAPIKey
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.permissions import IsAuthenticated
+from rest_framework import status
 
 from character.models import Character
 
@@ -13,7 +14,7 @@ from character.serializers import CharacterSerializer
 
 
 class CharacterWebView(mixins.ListModelMixin, GenericAPIView):
-
+    """used when a user wants to see characters on a website"""
     queryset = Character.objects.all()
     serializer_class = CharacterSerializer
 
@@ -24,6 +25,7 @@ character_web_view = CharacterWebView().as_view()
 
 
 class CharacterListGameServerView(GetValidateUserMixin, GenericAPIView):
+    """For retrieving and creating characters at character select screen"""
     permission_classes = [HasAPIKey]
     serializer_class = CharacterSerializer
 
@@ -37,6 +39,10 @@ class CharacterListGameServerView(GetValidateUserMixin, GenericAPIView):
     def post(self, request, *args, **kwargs):
         # get user via token
         user = self.get_validated_user(request)
+
+        # check user can create more characters
+        if len(Character.objects.filter(user=user)) >= 3:
+            return Response({"message": "max characters reached"})
 
         # get character data from request
         serializer = self.get_serializer(data=request.data)
@@ -58,50 +64,63 @@ class CharacterListGameServerView(GetValidateUserMixin, GenericAPIView):
         serializer = self.get_serializer(new_character)        
         
         # return success code
-        return Response(serializer.data)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 character_list_game_server_view = CharacterListGameServerView().as_view()
 
 
 class CharacterDetailGameServerView(GetValidateUserMixin, GenericAPIView):
+    """For retrieving and updating or deleting single characters"""
+
     permission_classes = [HasAPIKey]
     serializer_class = CharacterSerializer
+    queryset = Character.objects.all()
 
     def get_queryset(self, user):
-        lookup_url_kwarg = self.lookup_url_kwarg or self.lookup_field
-        return super().get_queryset().filter(id=lookup_url_kwarg, user=user)
+        return self.queryset.filter(user=user, pk=self.kwargs["uuid"])
 
     def get(self, request, *args, **kwargs):
         # check the token and get user
         user = self.get_validated_user(request)
 
         # get character via id in request data + user
+        queryset = self.get_queryset(user).first()
+
+        if queryset:
+            serializer = self.get_serializer(queryset)
+            # return the character data
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(status.HTTP_404_NOT_FOUND)
+
+    def patch(self, request, *args, **kwargs):
+        # check the token and get user
+        user = self.get_validated_user(request)
+
         queryset = self.get_queryset(user)
 
-        serializer = self.get_serializer(queryset)
-        # return the character data
-        return Response(serializer.data)
+        if queryset:
+            # get data from request
+            serializer = self.get_serializer(data=request.data, partial=True)
+            serializer.is_valid(raise_exception=True)
 
-    def update(self, request, *args, **kwargs):
-        pass
-        # check the token
-
-        # get user via the token
-
-        # get character via id in request data + user
-
-        # get data from request
-
-        # update the character with data
-
-        # return success code
+            # update the character with data
+            queryset.update(**serializer.validated_data)
+            updated_character = self.get_queryset(user).first()
+            serializer = self.get_serializer(updated_character)
+            # return success code
+            return Response(serializer.data, status=status.HTTP_204_NO_CONTENT)
+        return Response(status=status.HTTP_404_NOT_FOUND)
 
     def delete(self, request, *args, **kwargs):
-        pass
-        # check token and get user
+        # check the token and get user
+        user = self.get_validated_user(request)
 
-        # get queryset
+        queryset = self.get_queryset(user)
+        if queryset:
+            character =queryset.first()
+            character.delete()
+        
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
-        # delete character
 
 character_detail_game_server_view = CharacterDetailGameServerView().as_view()
