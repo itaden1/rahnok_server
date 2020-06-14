@@ -30,15 +30,15 @@ class CharacterListGameServerView(GetValidateUserMixin, GenericAPIView):
     serializer_class = CharacterSerializer
 
     def get(self, request, *args, **kwargs):
-        user = self.get_validated_user(request)
+        user, token = self.get_validated_user(request)
         characters = Character.objects.filter(user=user)
 
         serializer = self.get_serializer(characters, many=True)
-        return Response(serializer.data)
+        return Response({"token": token, "character_data": serializer.data})
     
     def post(self, request, *args, **kwargs):
         # get user via token
-        user = self.get_validated_user(request)
+        user, token = self.get_validated_user(request)
 
         # check user can create more characters
         if len(Character.objects.filter(user=user)) >= 3:
@@ -64,9 +64,48 @@ class CharacterListGameServerView(GetValidateUserMixin, GenericAPIView):
         serializer = self.get_serializer(new_character)        
         
         # return success code
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response({token: serializer.data}, status=status.HTTP_201_CREATED)
+
+
 
 character_list_game_server_view = CharacterListGameServerView().as_view()
+
+
+class BulkUpdateCharacterView(GenericAPIView):
+    """Perform a bulk update on all connected players"""
+    permission_classes = [HasAPIKey]
+    serializer_class = CharacterSerializer
+    queryset = Character.objects.all()
+
+    def patch(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data.get("players"), many=True)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+        id_list = [i["id"] for i in data]
+        objects = self.get_queryset().filter(id__in=id_list).all()
+
+        try:
+            # update all objects
+            for ob in objects:
+                for d in data:
+                    if d["id"] == ob.id:
+                        ob.transform_x = d["transform_x"]
+                        ob.transform_y = d["transform_y"]
+                        ob.transform_z = d["transform_z"]
+                        ob.transform_o = d["transform_o"]
+            Character.objects.bulk_update(
+                objects, 
+                fields=["transform_x", "transform_y", "transform_z", "transform_o"],
+                batch_size=100
+                )
+            
+            serializer = self.get_serializer(self.get_queryset().filter(id__in=id_list), many=True)
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        except:
+            # TODO log errors somewhere
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+
+bulk_update_character_view = BulkUpdateCharacterView().as_view()
 
 
 class CharacterDetailGameServerView(GetValidateUserMixin, GenericAPIView):
