@@ -115,27 +115,26 @@ class CharacterDetailGameServerView(GetValidateUserMixin, GenericAPIView):
     serializer_class = CharacterSerializer
     queryset = Character.objects.all()
 
-    def get_queryset(self, user):
-        return self.queryset.filter(user=user, pk=self.kwargs["uuid"])
+    def get_queryset(self):
+        return self.queryset.filter(pk=self.kwargs["uuid"])
 
     def get(self, request, *args, **kwargs):
         # check the token and get user
-        user = self.get_validated_user(request)
+        user, token = self.get_validated_user(request)
 
-        # get character via id in request data + user
-        queryset = self.get_queryset(user).first()
+        queryset = self.get_queryset().filter(user_id=user.id).first()
 
         if queryset:
             serializer = self.get_serializer(queryset)
             # return the character data
-            return Response(serializer.data, status=status.HTTP_200_OK)
+            return Response({"token": token, "character_data": serializer.data}, status=status.HTTP_200_OK)
         return Response(status.HTTP_404_NOT_FOUND)
 
     def patch(self, request, *args, **kwargs):
         # check the token and get user
-        user = self.get_validated_user(request)
+        user, _ = self.get_validated_user(request)
 
-        queryset = self.get_queryset(user)
+        queryset = self.get_queryset().filter(user_id=user.id).first()
 
         if queryset:
             # get data from request
@@ -144,7 +143,7 @@ class CharacterDetailGameServerView(GetValidateUserMixin, GenericAPIView):
 
             # update the character with data
             queryset.update(**serializer.validated_data)
-            updated_character = self.get_queryset(user).first()
+            updated_character = self.get_queryset().filter(user_id=user.id).first()
             serializer = self.get_serializer(updated_character)
             # return success code
             return Response(serializer.data, status=status.HTTP_204_NO_CONTENT)
@@ -152,11 +151,11 @@ class CharacterDetailGameServerView(GetValidateUserMixin, GenericAPIView):
 
     def delete(self, request, *args, **kwargs):
         # check the token and get user
-        user = self.get_validated_user(request)
+        user, _ = self.get_validated_user(request)
 
-        queryset = self.get_queryset(user)
+        queryset = self.get_queryset().filter(user_id=user.id)
         if queryset:
-            character =queryset.first()
+            character = queryset.first()
             character.delete()
         
         return Response(status=status.HTTP_204_NO_CONTENT)
