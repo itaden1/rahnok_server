@@ -101,7 +101,8 @@ class BulkUpdateCharacterView(GenericAPIView):
             
             serializer = self.get_serializer(self.get_queryset().filter(id__in=id_list), many=True)
             return Response(status=status.HTTP_204_NO_CONTENT)
-        except:
+        except Exception as e:
+            print(e)
             # TODO log errors somewhere
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
