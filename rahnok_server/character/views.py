@@ -39,15 +39,16 @@ class CharacterListGameServerView(GetValidateUserMixin, GenericAPIView):
     def post(self, request, *args, **kwargs):
         # get user via token
         user, token = self.get_validated_user(request)
-
         # check user can create more characters
         if len(Character.objects.filter(user=user)) >= 3:
             return Response({"message": "max characters reached"})
 
         # get character data from request
         serializer = self.get_serializer(data=request.data)
+
         serializer.is_valid(raise_exception=True)
         # create a new character for the user
+
         data = serializer.validated_data
 
         new_character = Character.objects.create(
@@ -55,16 +56,12 @@ class CharacterListGameServerView(GetValidateUserMixin, GenericAPIView):
             first_name=data["first_name"],
             last_name=data["last_name"],
             appearance=data["appearance"],
-            transform_x=data["transform_x"],
-            transform_y=data["transform_y"],
-            transform_z=data["transform_z"],
-            transform_o=data["transform_o"],
             )
 
         serializer = self.get_serializer(new_character)        
         
         # return success code
-        return Response({token: serializer.data}, status=status.HTTP_201_CREATED)
+        return Response({"token": token, "character_data": serializer.data}, status=status.HTTP_201_CREATED)
 
 
 
