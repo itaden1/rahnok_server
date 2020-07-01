@@ -10,14 +10,14 @@ class TransformSerializer(serializers.Serializer):
 
 class CharacterSerializer(serializers.Serializer):
     id = serializers.UUIDField(required=False)
-    first_name = serializers.CharField()
-    last_name = serializers.CharField()
+    first_name = serializers.CharField(required=False)
+    last_name = serializers.CharField(required=False)
     level = serializers.IntegerField(required=False)
     transform_x = TransformSerializer(required=False)
     transform_y = TransformSerializer(required=False)
     transform_z = TransformSerializer(required=False)
     transform_o = TransformSerializer(required=False)
-    appearance = serializers.JSONField()
+    appearance = serializers.JSONField(required=False)
 
     def validate_appearance(self, appearance):
         if appearance is None:
