@@ -62,8 +62,8 @@ auth_logout_user_view = DeleteUserAuthToken.as_view()
 class VerifyAuthToken(APIView):
     """Get user id from the Auth Token, This should only be accessed from the game server.
      it is used to make further queries on behalf of the player, for example updating their character"""
-
-    permission_classes = [HasAPIKey]
+    # TODO fix api keys
+    # permission_classes = [HasAPIKey]
     serializer_class = TokenRequestSerializer
 
     def post(self, request, *args, **kwargs):
@@ -73,14 +73,15 @@ class VerifyAuthToken(APIView):
         token = Token.objects.filter(key=serializer.validated_data.get("token")).first()
         if token:
             response = Response({
-                "verified": True, 
-                "token": token.key}, 
-                status=status.HTTP_200_OK)
+                "verified": True,
+                "user_id": token.user.id, 
+                "token": token.key
+                }, status=status.HTTP_200_OK)
         else:
             response = Response({
                 "verified": False,
-                "token": serializer.validated_data.get("token")},
-                 status=status.HTTP_410_GONE)
+                "token": serializer.validated_data.get("token")
+                }, status=status.HTTP_410_GONE)
         return response
 
 auth_token_verify_view = VerifyAuthToken().as_view()

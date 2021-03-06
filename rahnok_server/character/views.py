@@ -7,6 +7,8 @@ from rest_framework.authentication import TokenAuthentication
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
 
+from auth_service.serializers import UserSerializer
+from auth_service.models import User
 from character.models import Character
 
 from character.mixins import GetValidateUserMixin
@@ -26,15 +28,21 @@ character_web_view = CharacterWebView().as_view()
 
 class CharacterListGameServerView(GetValidateUserMixin, GenericAPIView):
     """For retrieving and creating characters at character select screen"""
-    permission_classes = [HasAPIKey]
+    # TODO fix api keys
+    #permission_classes = [HasAPIKey]
     serializer_class = CharacterSerializer
 
     def get(self, request, *args, **kwargs):
-        user, token = self.get_validated_user(request)
+        user_serializer = UserSerializer(data=request.data)
+        user_serializer.is_valid(raise_exception=True)
+        user = User.objects.get(user_serializer.validated_data.get("user_id"))
+        #user, token = self.get_validated_user(request)
+        print(user, "******")
+
         characters = Character.objects.filter(user=user)
 
         serializer = self.get_serializer(characters, many=True)
-        return Response({"token": token, "character_data": serializer.data})
+        return Response({"user_id": user.id, "character_data": serializer.data})
     
     def post(self, request, *args, **kwargs):
         # get user via token
@@ -70,7 +78,8 @@ character_list_game_server_view = CharacterListGameServerView().as_view()
 
 class BulkUpdateCharacterView(GenericAPIView):
     """Perform a bulk update on all connected players"""
-    permission_classes = [HasAPIKey]
+    #TODO re add permission
+    #permission_classes = [HasAPIKey]
     serializer_class = CharacterSerializer
     queryset = Character.objects.all()
 
@@ -108,8 +117,8 @@ bulk_update_character_view = BulkUpdateCharacterView().as_view()
 
 class CharacterDetailGameServerView(GetValidateUserMixin, GenericAPIView):
     """For retrieving and updating or deleting single characters"""
-
-    permission_classes = [HasAPIKey]
+    # TODO fix api keys
+    #permission_classes = [HasAPIKey]
     serializer_class = CharacterSerializer
     queryset = Character.objects.all()
 
