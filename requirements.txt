@@ -1,4 +1,4 @@
 Django>=2.2.13, <3.0
-djangorestframework==3.11
+djangorestframework==3.11.2
 djangorestframework-api-key==1.4.1  
 psycopg2>=2.7, <3.0
